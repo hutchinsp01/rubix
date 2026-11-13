@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>After layer one</title>
+  <meta name="description" content="The cases that finish a Rubik's cube once the white layer is built, with a counter and a confidence tick for each.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Mono:wght@500;600&family=Rubik:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="top">
+      <h1>After layer one</h1>
+      <p class="lede">You build the white layer yourself. These <span class="case-count">20</span> cases do the rest: the four middle edges, then four short looks at the yellow layer. Press +1 each time you use one, and tick Confident once you no longer need the picture.</p>
+
+      <nav class="map" id="map" aria-label="All cases"></nav>
+
+      <div class="status">
+        <p class="summary"><strong id="confident-count">0</strong> of <span class="case-count">20</span> confident</p>
+        <label class="switch"><input type="checkbox" id="only-learning"> Only show what I'm still learning</label>
+      </div>
+
+      <details class="notation">
+        <summary>How to read the moves</summary>
+        <dl>
+          <div>
+            <dt>R L U D F B</dt>
+            <dd>Turn the right, left, up (top), down (bottom), front or back face a quarter turn clockwise, as if you were looking straight at that face.</dd>
+          </div>
+          <div>
+            <dt>R'</dt>
+            <dd>The same turn the other way, counter-clockwise.</dd>
+          </div>
+          <div>
+            <dt>R2</dt>
+            <dd>Turn it twice.</dd>
+          </div>
+          <div>
+            <dt>r f</dt>
+            <dd>Lowercase means two layers: that face and the middle layer next to it, turned together.</dd>
+          </div>
+          <div>
+            <dt>M</dt>
+            <dd>The middle layer between left and right. M pulls its front down, the way L does. M' pushes it up.</dd>
+          </div>
+          <div>
+            <dt><span class="grp" data-chunk="R U R' U'" tabindex="0">(R U R' U')</span></dt>
+            <dd>Brackets mark a chunk worth learning as one motion. Hover over a chunk, or tap it, to see its name and where else it turns up.</dd>
+          </div>
+          <div>
+            <dt>Pictures</dt>
+            <dd>From step 2 on, the square pictures look straight down at the top of the cube. The bars around the outside are the side stickers of the top layer. Grey means it doesn't matter.</dd>
+          </div>
+        </dl>
+      </details>
+    </header>
+
+    <main id="stages"></main>
+
+    <footer class="foot">
+      <p id="save-note">Your marks are saved in this browser.</p>
+      <button type="button" id="clear" class="quiet">Clear all marks</button>
+    </footer>
+  </div>
+
+  <script src="cube.js"></script>
+  <script src="cases.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
