@@ -21,16 +21,16 @@
    */
   const chunks = {
     "R U R' U'": {
-      name: 'Sexy move',
-      note: 'The most common chunk in cubing, and that really is what everyone calls it. Six in a row puts the cube back where it started.',
+      name: 'Righty',
+      note: 'The most common chunk in cubing, done with the right hand. Six in a row puts the cube back where it started.',
     },
     "R' F R F'": {
       name: 'Sledgehammer',
       note: 'The other chunk worth knowing by name.',
     },
     "r U R' U'": {
-      name: 'Wide sexy move',
-      note: 'The sexy move with a two-layer first turn.',
+      name: 'Wide righty',
+      note: 'Righty with a two-layer first turn.',
     },
     "r' F R F'": {
       name: 'Wide sledgehammer',
@@ -41,10 +41,65 @@
   const stages = [
     {
       /*
-       * The white layer is built by hand, so this step only places the four
-       * middle edges. `side` says which gap a case fills and which side its
-       * picture is drawn from; `anySlot` marks a case that looks the same
-       * from either side, so one card covers every gap.
+       * The first two steps build the white layer on the bottom. Each picture
+       * shows the piece in the top layer, above the outlined spot it's headed
+       * for: the front-bottom edge here, the front-right bottom corner next.
+       */
+      id: 'cross',
+      title: 'White cross',
+      jargon: 'the four white edges',
+      short: 'White cross',
+      intro:
+        "Hold the cube with the yellow centre on top and the white centre underneath, and keep it that way for the whole solve. Start with the four edges that have white on them. Get each one into the top layer first: if it's lower down, turn the face it's on until it comes up, turn the top to move it aside, then turn that face back. Then send them down one at a time. The spot an edge is headed for is outlined in white.",
+      cases: [
+        {
+          id: 'cross-up',
+          name: 'Edge with white on top',
+          alg: 'F2',
+          tip: "Turn the top until the edge's side colour is above the centre of the same colour, facing you. Two turns of the front carry it to the bottom.",
+        },
+        {
+          id: 'cross-front',
+          name: 'Edge with white facing you',
+          alg: "U' R' F R",
+          tip: 'White faces you instead of up. Turn the top until the colour on top of the edge matches the centre in front of you, then tuck it in round the side.',
+        },
+      ],
+    },
+    {
+      id: 'corners',
+      title: 'White corners',
+      jargon: 'finishing the white layer',
+      short: 'White corners',
+      intro:
+        "Next, the four corners with white on them. Find one in the top layer and read its other two colours. Turn the top until it sits between the centres of those two colours, then hold that corner at your front-right. It is now directly above the gap it belongs in, and the way its white sticker faces picks the card. If a white corner is stuck in the bottom layer, hold it at your front-right and do `R U R' U'` once to bring it up. That same chunk, repeated, solves any of these: it never takes more than five goes.",
+      cases: [
+        {
+          id: 'corner-right',
+          name: 'Corner with white facing right',
+          alg: "R U R'",
+          tip: 'White faces out to the right. Three moves drop it in.',
+        },
+        {
+          id: 'corner-front',
+          name: 'Corner with white facing you',
+          alg: "F' U' F",
+          tip: 'White faces you. This is the mirror image of the one before, done with the front face.',
+        },
+        {
+          id: 'corner-up',
+          name: 'Corner with white on top',
+          alg: "(R U R' U') (R U R' U') (R U R' U')",
+          tip: 'White faces up. The same four moves, three times over.',
+        },
+      ],
+    },
+    {
+      /*
+       * With the white layer done, this step places the four middle edges.
+       * `side` says which gap a case fills and which side its picture is
+       * drawn from; `anySlot` marks a case that looks the same from either
+       * side, so one card covers every gap.
        */
       id: 'f2l',
       title: 'Middle layer',
@@ -100,7 +155,7 @@
       jargon: 'OLL, first look',
       short: 'Yellow cross',
       intro:
-        'Yellow goes on top from here on. Ignore the corners and look only at the edges of the top face. If you already have a yellow cross, skip to step 3.',
+        'Yellow goes on top from here on. Ignore the corners and look only at the edges of the top face. If you already have a yellow cross, skip to the next step.',
       cases: [
         {
           id: 'eo-dot',
@@ -184,7 +239,7 @@
       jargon: 'PLL, first look',
       short: 'Corners',
       intro:
-        'The top is all yellow, so now read the side colours, and only on the corners. Two corners that match on one side are called headlights. If all four sides have them, skip to step 5. Your colours will differ from the pictures; match the pattern.',
+        'The top is all yellow, so now read the side colours, and only on the corners. Two corners that match on one side are called headlights. If all four sides have them, skip to the next step. Your colours will differ from the pictures; match the pattern.',
       cases: [
         {
           id: 'cp-t',

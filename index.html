@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>After layer one</title>
-  <meta name="description" content="The cases that finish a Rubik's cube once the white layer is built, with a counter and a confidence tick for each.">
+  <title>Layer by layer</title>
+  <meta name="description" content="A beginner's Rubik's cube solve in seven steps, with a picture, a counter and a confidence tick for each case.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Mono:wght@500;600&family=Rubik:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -13,13 +13,13 @@
 <body>
   <div class="wrap">
     <header class="top">
-      <h1>After layer one</h1>
-      <p class="lede">You build the white layer yourself. These <span class="case-count">20</span> cases do the rest: the four middle edges, then four short looks at the yellow layer. Press +1 each time you use one, and tick Confident once you no longer need the picture.</p>
+      <h1>Layer by layer</h1>
+      <p class="lede">A whole solve in seven steps and <span class="case-count">25</span> cases: build the white layer, place the middle edges, then take four short looks at the yellow layer. Press +1 each time you use a case, and tick Confident once you no longer need the picture.</p>
 
       <nav class="map" id="map" aria-label="All cases"></nav>
 
       <div class="status">
-        <p class="summary"><strong id="confident-count">0</strong> of <span class="case-count">20</span> confident</p>
+        <p class="summary"><strong id="confident-count">0</strong> of <span class="case-count">25</span> confident</p>
         <label class="switch"><input type="checkbox" id="only-learning"> Only show what I'm still learning</label>
       </div>
 
@@ -52,7 +52,7 @@
           </div>
           <div>
             <dt>Pictures</dt>
-            <dd>From step 2 on, the square pictures look straight down at the top of the cube. The bars around the outside are the side stickers of the top layer. Grey means it doesn't matter.</dd>
+            <dd>The first three steps show the whole cube from the front, with a white outline round the spot a piece is headed for. The square pictures in the yellow steps look straight down at the top, and the bars around the outside are the side stickers of the top layer. Grey means it doesn't matter.</dd>
           </div>
         </dl>
       </details>

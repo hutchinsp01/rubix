@@ -18,6 +18,12 @@ const fullState = (state) =>
 
 // What each case should look like before its algorithm is applied.
 const EXPECT = {
+  // white layer: which way the piece's white sticker faces before it goes in
+  'cross-up': { white: 'U' },
+  'cross-front': { white: 'F' },
+  'corner-right': { white: 'R' },
+  'corner-front': { white: 'F' },
+  'corner-up': { white: 'U' },
   // middle layer: where the edge starts
   'f2l-edge-right': { edge: 'front' },
   'f2l-edge-left': { edge: 'front' },
@@ -56,6 +62,25 @@ for (const stage of STAGES) {
     const fail = (msg) => problems.push(`${c.id}: ${msg}`);
     const state = Cube.caseState(c.alg);
     const expect = EXPECT[c.id] || {};
+
+    if (stage.id === 'cross' || stage.id === 'corners') {
+      // The piece starts in the top layer above its spot: the front-bottom edge
+      // for the cross, the front-right bottom corner for the corners.
+      const cross = stage.id === 'cross';
+      const target = cross ? '0,-1,1' : '1,-1,1';
+      const above = cross ? '0,1,1' : '1,1,1';
+      const isCrossEdge = (st) => st.home[1] === -1 && Cube.pieceKind(st.home) === 'edge';
+      const isWhiteCorner = (st) => st.home[1] === -1 && Cube.pieceKind(st.home) === 'corner';
+      // What must already be in place and stay there: the other cross edges, and
+      // for a corner the whole cross plus the other white corners.
+      const kept = state.filter((st) => st.home.join() !== target && (isCrossEdge(st) || (!cross && isWhiteCorner(st))));
+      if (!kept.every(isHome)) fail('disturbs white pieces that are already placed');
+      const piece = state.filter((st) => st.home.join() === target);
+      if (!piece.every((st) => st.p.join() === above)) fail('should start with the piece in the top layer above its spot');
+      const white = piece.find((st) => st.face === 'D');
+      if (white.n.join() !== N[expect.white].join()) fail('white is not facing the way the card says');
+      continue;
+    }
 
     if (stage.id === 'f2l') {
       // The white layer and the other middle edges must already be solved.
@@ -142,6 +167,34 @@ if (new Set(views).size !== views.length) {
   const rest = after.filter((st) => st.home[1] <= 0 && st.home.join() !== '1,0,1');
   if (!stuck.every((st) => st.p[1] === 1)) problems.push('Edge to the right should lift the front-right edge to the top layer');
   if (!rest.every(isHome)) problems.push('Edge to the right should leave the rest of the first two layers alone');
+}
+
+/*
+ * The white-corner step says two things about (R U R' U'): once brings a
+ * stuck corner up from the front-right without disturbing the rest of the
+ * white layer, and repeating it solves any corner above its gap in five goes
+ * or fewer.
+ */
+{
+  const righty = "R U R' U'";
+  const whiteLayer = (state) => state.filter((st) => st.home[1] === -1);
+  const corner = (state) => state.filter((st) => st.home.join() === '1,-1,1');
+
+  const lifted = Cube.apply(Cube.solved(), righty);
+  if (!corner(lifted).every((st) => st.p[1] === 1)) problems.push('Righty once should lift the front-right corner to the top layer');
+  if (!whiteLayer(lifted).filter((st) => st.home.join() !== '1,-1,1').every(isHome)) {
+    problems.push('Righty once should leave the rest of the white layer alone');
+  }
+
+  for (const c of STAGES.find((stage) => stage.id === 'corners').cases) {
+    let state = Cube.caseState(c.alg);
+    let goes = 0;
+    while (goes < 5 && !whiteLayer(state).every(isHome)) {
+      state = Cube.apply(state, righty);
+      goes++;
+    }
+    if (!whiteLayer(state).every(isHome)) problems.push(`${c.id}: repeating Righty should solve it within five goes`);
+  }
 }
 
 // Every named chunk must be bracketed in at least one algorithm, spelled the same way.

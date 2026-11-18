@@ -21,6 +21,9 @@
 }
 
 /* One colour per step; --on-stage is the text colour that reads on it. */
+/* The first two layers (white cross, white corners, middle edges) share green. */
+.tone-cross,
+.tone-corners,
 .tone-f2l { --stage: var(--green); --on-stage: #000; }
 .tone-eo { --stage: var(--yellow); --on-stage: #000; }
 .tone-co { --stage: var(--orange); --on-stage: #000; }

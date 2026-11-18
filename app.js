@@ -2,7 +2,7 @@
 (function () {
   'use strict';
 
-  // The page was once called "After the cross". The key keeps that name so saved marks survive.
+  // The page was first called "After the cross". The key keeps that name so saved marks survive.
   const KEY = 'after-the-cross:v1';
   const data = load();
   const allCases = STAGES.flatMap((stage) => stage.cases);
@@ -85,39 +85,64 @@
     );
   }
 
+  /*
+   * The first three steps are drawn as a whole cube. For each: which pieces
+   * are already solved by then (shown in colour), and the gap or gaps the
+   * case fills, as cubie positions [x, y, z].
+   */
+  const WHOLE_CUBE = {
+    cross: {
+      solved: () => false,
+      gaps: () => [[0, -1, 1]],
+    },
+    corners: {
+      solved: (home) => Cube.pieceKind(home) === 'edge' && home[1] === -1,
+      gaps: () => [[1, -1, 1]],
+    },
+    f2l: {
+      solved: (home) => home[1] === -1,
+      // Front-right or front-left, plus back-right for the two-edge swap.
+      gaps: (c) => [[c.side === 'left' ? -1 : 1, 0, 1]].concat(c.swap ? [[1, 0, -1]] : []),
+    },
+  };
+
+  // The outline of a gap where it shows: round a front corner, or flat on one face.
+  function gapOutline([x, y, z]) {
+    const top = y + 0.5, bottom = y - 0.5;
+    if (z === 1 && x !== 0) {
+      return [
+        [x * 0.5, top, 1.5], [x * 1.5, top, 1.5], [x * 1.5, top, 0.5],
+        [x * 1.5, bottom, 0.5], [x * 1.5, bottom, 1.5], [x * 0.5, bottom, 1.5],
+      ];
+    }
+    if (z === 1) return [[-0.5, top, 1.5], [0.5, top, 1.5], [0.5, bottom, 1.5], [-0.5, bottom, 1.5]];
+    return [[x * 1.5, top, z + 0.5], [x * 1.5, top, z - 0.5], [x * 1.5, bottom, z - 0.5], [x * 1.5, bottom, z + 0.5]];
+  }
+
   function diagram(stage, c) {
     const state = Cube.caseState(c.alg);
+    const label = esc(`${c.name}, before the algorithm`);
+    const whole = WHOLE_CUBE[stage.id];
 
-    if (stage.id === 'f2l') {
-      // A gap is a middle-layer edge position: front-right or front-left,
-      // plus back-right for the case that swaps two edges on the right face.
-      const x = c.side === 'left' ? -1 : 1;
-      const gaps = [[x, 0, 1].join()].concat(c.swap ? ['1,0,-1'] : []);
-      // Each gap is traced where it shows: round the front corner, or flat on the right face.
-      const outline = [[
-        [x * 0.5, 0.5, 1.5], [x * 1.5, 0.5, 1.5], [x * 1.5, 0.5, 0.5],
-        [x * 1.5, -0.5, 0.5], [x * 1.5, -0.5, 1.5], [x * 0.5, -0.5, 1.5],
-      ]];
-      if (c.swap) outline.push([[1.5, 0.5, -0.5], [1.5, 0.5, -1.5], [1.5, -0.5, -1.5], [1.5, -0.5, -0.5]]);
-
+    if (whole) {
+      const gaps = whole.gaps(c);
+      const keys = gaps.map((gap) => gap.join());
       return Cube.isoView(state, {
         view: c.side,
-        label: esc(`${c.name}, before the algorithm`),
+        label,
         paint(st) {
-          // Shown in colour: centres, the finished white layer, and this case's edges.
-          const whiteLayer = st.home[1] === -1;
-          if (Cube.pieceKind(st.home) === 'center' || whiteLayer || gaps.includes(st.home.join())) return st.face;
+          // Shown in colour: centres, whatever is solved so far, and this case's pieces.
+          if (Cube.pieceKind(st.home) === 'center' || whole.solved(st.home) || keys.includes(st.home.join())) return st.face;
           // Whatever else is sitting in a gap doesn't matter: show it empty.
-          return gaps.includes(st.p.join()) ? 'any' : 'blank';
+          return keys.includes(st.p.join()) ? 'any' : 'blank';
         },
-        outline,
+        outline: gaps.map(gapOutline),
         // The swap is seen from further round, so the right face is the big one.
         turn: c.swap ? 60 : 30,
         arrows: c.swap ? [{ from: [1.5, 0, 0.95], to: [1.5, 0, -0.95], both: true }] : [],
       });
     }
 
-    const label = esc(`${c.name}, before the algorithm`);
 
     const painters = {
       // Edges only: corners don't matter yet.
@@ -164,14 +189,15 @@
       </article>`;
   }
 
+  // `R U R'` in a step's text is set as moves and kept on one line.
+  const prose = (text) => esc(text).replace(/`([^`]+)`/g, '<span class="moves">$1</span>');
+
   // A step is one grid of cases, or two with a sub-heading between them.
   function gridsHTML(stage) {
     const grid = (cases) => `<div class="grid">${cases.map((c) => caseHTML(stage, c)).join('')}</div>`;
     const sub = stage.subhead;
     if (!sub) return grid(stage.cases);
     const at = stage.cases.findIndex((c) => c.id === sub.before);
-    // `R U R'` in the text is set as moves and kept on one line.
-    const prose = (text) => esc(text).replace(/`([^`]+)`/g, '<span class="moves">$1</span>');
     return `${grid(stage.cases.slice(0, at))}
       <div class="subhead">
         <h3>${esc(sub.title)}</h3>
@@ -188,7 +214,7 @@
           <span class="stage-num" aria-hidden="true"><span>${i + 1}</span></span>
           <div>
             <h2 id="h-${stage.id}">${esc(stage.title)} <span class="jargon">${esc(stage.jargon)}</span></h2>
-            <p class="intro">${esc(stage.intro)}</p>
+            <p class="intro">${prose(stage.intro)}</p>
           </div>
         </div>
         <p class="all-done" hidden></p>
