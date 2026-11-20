@@ -6,13 +6,18 @@
   const KEY = 'after-the-cross:v1';
   const data = load();
   const allCases = STAGES.flatMap((stage) => stage.cases);
+  const stageOf = Object.fromEntries(STAGES.flatMap((stage) => stage.cases.map((c) => [c.id, stage])));
+
+  // Steps that start closed, whatever the marks say.
+  const CLOSED_AT_FIRST = ['cross', 'corners'];
 
   function load() {
     try {
       const raw = JSON.parse(localStorage.getItem(KEY));
-      if (raw && typeof raw === 'object' && raw.marks) return raw;
+      // `open` came later than the marks, so older saves don't have it.
+      if (raw && typeof raw === 'object' && raw.marks) return { open: {}, ...raw };
     } catch (e) { /* fall through to a fresh start */ }
-    return { marks: {}, onlyLearning: false };
+    return { marks: {}, onlyLearning: false, open: {} };
   }
 
   function save() {
@@ -28,6 +33,17 @@
   }
 
   const markFor = (id) => data.marks[id] || (data.marks[id] = { uses: 0, confident: false });
+
+  const isDone = (stage) => stage.cases.every((c) => markFor(c.id).confident);
+  const isOpen = (stage) => data.open[stage.id];
+
+  // A step stays the way it was last opened or closed. One that hasn't been yet starts
+  // closed if it's one of the first two, or if its cases are all confident.
+  function settleOpen() {
+    for (const stage of STAGES) {
+      if (!(stage.id in data.open)) data.open[stage.id] = !CLOSED_AT_FIRST.includes(stage.id) && !isDone(stage);
+    }
+  }
 
   const esc = (s) => s.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
   const plain = (alg) => alg.replace(/[()]/g, '');
@@ -208,17 +224,21 @@
   }
 
   function render() {
+    // Each step is an accordion: the heading is a button that shows or hides the rest.
     document.getElementById('stages').innerHTML = STAGES.map((stage, i) => `
       <section class="stage tone-${stage.id}" data-stage="${stage.id}" aria-labelledby="h-${stage.id}">
-        <div class="stage-head">
-          <span class="stage-num" aria-hidden="true"><span>${i + 1}</span></span>
-          <div>
-            <h2 id="h-${stage.id}">${esc(stage.title)} <span class="jargon">${esc(stage.jargon)}</span></h2>
-            <p class="intro">${prose(stage.intro)}</p>
-          </div>
-        </div>
+        <h2 id="h-${stage.id}">
+          <button type="button" class="stage-toggle" aria-expanded="true" aria-controls="body-${stage.id}">
+            <span class="stage-num" aria-hidden="true"><span>${i + 1}</span></span>
+            <span class="stage-title">${esc(stage.title)} <span class="jargon">${esc(stage.jargon)}</span></span>
+            <span class="chev" aria-hidden="true"></span>
+          </button>
+        </h2>
         <p class="all-done" hidden></p>
-        ${gridsHTML(stage)}
+        <div class="stage-body" id="body-${stage.id}">
+          <p class="intro">${prose(stage.intro)}</p>
+          ${gridsHTML(stage)}
+        </div>
       </section>`).join('');
 
     document.getElementById('map').innerHTML = STAGES.map((stage, i) => `
@@ -253,13 +273,43 @@
     document.getElementById('confident-count').textContent = confident;
     document.body.classList.toggle('only-learning', data.onlyLearning);
     document.getElementById('only-learning').checked = data.onlyLearning;
+    STAGES.forEach(paintStage);
+  }
 
-    for (const stage of STAGES) {
-      const done = stage.cases.every((c) => markFor(c.id).confident);
-      const note = document.querySelector(`[data-stage="${stage.id}"] .all-done`);
-      note.hidden = !(done && data.onlyLearning);
-      note.textContent = `All ${stage.cases.length} confident.`;
-    }
+  function paintStage(stage) {
+    const section = document.querySelector(`[data-stage="${stage.id}"]`);
+    const open = isOpen(stage);
+    section.querySelector('.stage-toggle').setAttribute('aria-expanded', String(open));
+    // "until-found" lets the browser's find-in-page reach into a closed step.
+    const body = section.querySelector('.stage-body');
+    if (open) body.removeAttribute('hidden');
+    else body.setAttribute('hidden', 'until-found');
+
+    const note = section.querySelector('.all-done');
+    note.hidden = !isDone(stage);
+    note.textContent = stage.cases.length === 2 ? 'Both confident.' : `All ${stage.cases.length} confident.`;
+  }
+
+  function setOpen(stage, open) {
+    data.open[stage.id] = open;
+    save();
+    paintStage(stage);
+  }
+
+  const openStageOf = (caseId) => {
+    const stage = stageOf[caseId];
+    if (stage && !isOpen(stage)) setOpen(stage, true);
+  };
+
+  // A step closes once its last case is ticked, after a moment so the colour can flood in.
+  function closeWhenDone(stage) {
+    if (!isDone(stage) || !isOpen(stage)) return;
+    const section = document.querySelector(`[data-stage="${stage.id}"]`);
+    const hadFocus = section.querySelector('.stage-body').contains(document.activeElement);
+    setOpen(stage, false);
+    if (hadFocus) section.querySelector('.stage-toggle').focus({ preventScroll: true });
+    // Everything below just moved up, so bring the closed step back into view.
+    if (section.getBoundingClientRect().top < 0) section.scrollIntoView();
   }
 
   function paintAll() {
@@ -274,10 +324,19 @@
   }
 
   document.getElementById('stages').addEventListener('click', (event) => {
+    const toggle = event.target.closest('.stage-toggle');
+    if (toggle) {
+      const stage = STAGES.find((s) => s.id === toggle.closest('[data-stage]').dataset.stage);
+      setOpen(stage, !isOpen(stage));
+      return;
+    }
+
     const control = event.target.closest('[data-act]');
     if (!control) return;
     const card = control.closest('.cubie');
     const c = allCases.find((item) => item.id === card.dataset.id);
+    const stage = stageOf[c.id];
+    const wasDone = isDone(stage);
     const mark = markFor(c.id);
     const act = control.dataset.act;
 
@@ -291,6 +350,19 @@
     paintSummary();
     if (act === 'plus') bump(card.querySelector('.count'));
     if (act === 'minus' && mark.uses === 0) card.querySelector('[data-act="plus"]').focus();
+    if (!wasDone && isDone(stage)) setTimeout(() => closeWhenDone(stage), 700);
+  });
+
+  // Find in page opens a closed step by itself; keep the button in step with it.
+  document.getElementById('stages').addEventListener('beforematch', (event) => {
+    const section = event.target.closest('[data-stage]');
+    if (section) setOpen(STAGES.find((s) => s.id === section.dataset.stage), true);
+  });
+
+  // A dot in the map opens the case's step before the page jumps to it.
+  document.getElementById('map').addEventListener('click', (event) => {
+    const dot = event.target.closest('[data-map]');
+    if (dot) openStageOf(dot.dataset.map);
   });
 
   // ---------- Hover card for bracketed chunks ----------
@@ -363,17 +435,25 @@
     const total = allCases.reduce((sum, c) => sum + markFor(c.id).uses, 0);
     if (!window.confirm(`Clear all marks? This wipes ${total} logged uses and every Confident tick.`)) return;
     data.marks = {};
+    // A fresh start: steps go back to how they first opened.
+    data.open = {};
+    settleOpen();
     save();
     paintAll();
   });
 
   render();
+  settleOpen();
   paintAll();
   save();
 
   // The cards are built after load, so honour a #case link by hand.
   if (location.hash.length > 1) {
-    const target = document.getElementById(decodeURIComponent(location.hash.slice(1)));
-    if (target) target.scrollIntoView();
+    const id = decodeURIComponent(location.hash.slice(1));
+    const target = document.getElementById(id);
+    if (target) {
+      openStageOf(id);
+      target.scrollIntoView();
+    }
   }
 })();
